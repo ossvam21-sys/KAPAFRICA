@@ -146,6 +146,15 @@
     </script>
   </head>
   <body>
+    <!-- Hidden form for Netlify Forms detection at build time -->
+    <form name="reservations" netlify netlify-honeypot="bot-field" hidden>
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <input type="tel" name="phone" />
+      <input type="date" name="date" />
+      <input type="number" name="guests" />
+      <textarea name="message"></textarea>
+    </form>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
