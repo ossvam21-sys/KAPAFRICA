@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin, Phone, Instagram, MessageCircle, CheckCircle } from "lucide-react";
 import pattern from "@assets/generated_images/dark_luxury_abstract_african_pattern_with_gold_accents.png";
-import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -33,53 +32,38 @@ export function InfoSection() {
     message: ""
   });
 
-  const createReservationMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const response = await fetch("/api/reservations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+  const [isPending, setIsPending] = useState(false);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erreur lors de la réservation");
-      }
+  const encode = (data: Record<string, string | number>) =>
+    Object.keys(data)
+      .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(data[key]))
+      .join("&");
 
-      return response.json();
-    },
-    onSuccess: () => {
-      toast.success("Demande de réservation envoyée avec succès !", {
-        description: "Nous vous contacterons bientôt pour confirmer votre réservation.",
-        duration: 5000,
-      });
-      setFormData({
-        date: "",
-        guests: 2,
-        name: "",
-        email: "",
-        phone: "",
-        message: ""
-      });
-    },
-    onError: (error: Error) => {
-      toast.error("Erreur", {
-        description: error.message,
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.date) {
       toast.error("Veuillez sélectionner une date");
       return;
     }
 
-    createReservationMutation.mutate(formData);
+    setIsPending(true);
+    try {
+      await fetch("/", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: encode({ "form-name": "reservations", ...formData }),
+      });
+      toast.success("Demande de réservation envoyée avec succès !", {
+        description: "Nous vous contacterons bientôt pour confirmer votre réservation.",
+        duration: 5000,
+      });
+      setFormData({ date: "", guests: 2, name: "", email: "", phone: "", message: "" });
+    } catch {
+      toast.error("Erreur lors de l'envoi. Appelez-nous au 0478 57 66 13.");
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -147,7 +131,8 @@ export function InfoSection() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6 max-w-md p-8 bg-white/5 border border-white/5 backdrop-blur-sm">
+            <form onSubmit={handleSubmit} name="reservations" data-netlify="true" className="space-y-6 max-w-md p-8 bg-white/5 border border-white/5 backdrop-blur-sm">
+               <input type="hidden" name="form-name" value="reservations" />
                <div className="grid grid-cols-2 gap-4">
                  <div className="space-y-2">
                    <label className="text-xs uppercase tracking-widest text-white/60">Date *</label>
@@ -211,10 +196,10 @@ export function InfoSection() {
                
                <Button 
                  type="submit"
-                 disabled={createReservationMutation.isPending}
+                 disabled={isPending}
                  className="w-full bg-primary text-black hover:bg-white rounded-none uppercase tracking-widest py-6 transition-colors duration-300 disabled:opacity-50"
                >
-                 {createReservationMutation.isPending ? "Envoi en cours..." : "Confirmer la demande"}
+                 {isPending ? "Envoi en cours..." : "Confirmer la demande"}
                </Button>
             </form>
           </div>
